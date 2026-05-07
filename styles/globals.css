@@ -1,0 +1,250 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Green Initiative Design Tokens ───────────────────────────── */
+:root {
+  /* Backgrounds */
+  --eco-bg:         #FAF9F6;
+  --eco-surface:    #FFFFFF;
+  --eco-card:       #FFFFFF;
+  --eco-beige:      #F0EAD6;
+  --eco-cream:      #F5F5DC;
+
+  /* Text */
+  --eco-text:       #1A3B1A;
+  --eco-muted:      #6B8E23;
+  --eco-subtle:     #8B9E6B;
+
+  /* Brand */
+  --eco-emerald:    #2C5F2D;
+  --eco-olive:      #6B8E23;
+  --eco-sage:       #9CAF88;
+  --eco-brown:      #8B5A2B;
+  --eco-terra:      #E07A5F;
+
+  /* Borders */
+  --eco-border:     #D4E4CC;
+  --eco-border-sm:  #E2EDD9;
+
+  /* Focus ring */
+  --eco-focus:      #2C5F2D;
+}
+
+.dark {
+  --eco-bg:         #0F1F0F;
+  --eco-surface:    #162716;
+  --eco-card:       #1E331E;
+  --eco-beige:      #2A3D2A;
+  --eco-cream:      #243524;
+
+  --eco-text:       #E8F0E8;
+  --eco-muted:      #A8BEA8;
+  --eco-subtle:     #7A987A;
+
+  --eco-emerald:    #4A8F4B;
+  --eco-olive:      #8DB040;
+  --eco-sage:       #7A9E68;
+  --eco-brown:      #A06A3B;
+  --eco-terra:      #E07A5F;
+
+  --eco-border:     #2E4E2E;
+  --eco-border-sm:  #243A24;
+
+  --eco-focus:      #4A8F4B;
+}
+
+/* ── Low Carbon Mode ──────────────────────────────────────────── */
+/* Applied via JS toggle on <html class="low-carbon"> */
+.low-carbon *,
+.low-carbon *::before,
+.low-carbon *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* ── Reduced Motion (system preference) ──────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Base Resets ──────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--eco-bg);
+  color: var(--eco-text);
+  font-family: 'Inter', 'Poppins', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+#root, body {
+  min-height: 100vh;
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+/* ── Global Focus Ring (Accessibility) ───────────────────────── */
+*:focus-visible {
+  outline: 3px solid var(--eco-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Text Selection ───────────────────────────────────────────── */
+::selection {
+  background: rgba(156, 175, 136, 0.30);
+  color: var(--eco-text);
+}
+
+/* ── Smooth transitions only on interactive elements ─────────── */
+a, button, [role="button"] {
+  transition: color 0.2s ease, background-color 0.2s ease,
+              border-color 0.2s ease, opacity 0.2s ease;
+}
+
+/* ── Animations ──────────────────────────────────────────────── */
+@keyframes ecoFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes ecoSlideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.eco-fade-in {
+  animation: ecoFadeIn 0.2s ease-out forwards;
+}
+
+.eco-slide-up {
+  animation: ecoSlideUp 0.2s ease-out forwards;
+}
+
+/* ── Typography Utilities ────────────────────────────────────── */
+.font-display {
+  font-family: 'Inter', 'Poppins', sans-serif;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+}
+
+.font-accent {
+  font-family: 'Cormorant Garamond', 'Merriweather', serif;
+  font-style: italic;
+}
+
+/* ── Scrollbar styling ───────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--eco-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--eco-sage);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--eco-emerald);
+}
+
+/* ── Section spacing utility ─────────────────────────────────── */
+.section-gap {
+  padding-top: 96px;
+  padding-bottom: 96px;
+}
+
+@media (max-width: 768px) {
+  .section-gap {
+    padding-top: 48px;
+    padding-bottom: 48px;
+  }
+}
+
+/* ── Range Slider (input[type=range]) ───────────────────────── */
+/* Makes sliders visible on both light and dark backgrounds     */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(156, 175, 136, 0.25);  /* sage tint track */
+  outline: none;
+  cursor: pointer;
+}
+
+/* Thumb — Webkit (Chrome, Safari, Edge) */
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #9CAF88;          /* sage green */
+  border: 2px solid #2C5F2D;   /* emerald border */
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+input[type='range']::-webkit-slider-thumb:hover {
+  background: #2C5F2D;
+  transform: scale(1.15);
+}
+
+input[type='range']:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px rgba(44, 95, 45, 0.30);
+}
+
+/* Thumb — Firefox */
+input[type='range']::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #9CAF88;
+  border: 2px solid #2C5F2D;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+input[type='range']::-moz-range-thumb:hover {
+  background: #2C5F2D;
+}
+
+/* Track — Firefox */
+input[type='range']::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(156, 175, 136, 0.25);
+}
+
+/* On dark backgrounds (calculator page uses bg-forest) */
+.bg-forest input[type='range'],
+[class*='bg-forest'] input[type='range'] {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.bg-forest input[type='range']::-webkit-slider-thumb,
+[class*='bg-forest'] input[type='range']::-webkit-slider-thumb {
+  background: #9CAF88;
+  border-color: #9CAF88;
+}
+

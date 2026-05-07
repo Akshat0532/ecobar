@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "name": "calculate-emission-factor",
+  "description": "Calculate emission factors based on US postal code and eGRID region",
+  "main": "index.ts",
+  "imports": {
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2",
+    "$std/": "https://deno.land/std@0.208.0/"
+  }
+}
