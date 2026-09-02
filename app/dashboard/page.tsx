@@ -62,22 +62,31 @@ function formatDate(value: string) {
   });
 }
 
-function parseFlights(details?: string) {
+function parseFlights(details?: unknown) {
   if (!details) return 'N/A';
-  const match = details.match(/(\d+)\s*miles/i);
+  const str = typeof details === 'string' ? details : JSON.stringify(details);
+  const match = str.match(/(\d+)\s*miles/i);
   return match ? `${match[1]} mi` : 'N/A';
 }
 
 function convertToCsv(logs: CarbonLog[]) {
   const headers = ['Date', 'Electricity (kWh)', 'Driving (miles)', 'Flights', 'Total (tonnes)', 'Details'];
-  const rows = logs.map((log) => [
-    formatDate(log.created_at),
-    String(log.monthly_energy_usage ?? '–'),
-    String(log.weekly_miles ?? '–'),
-    parseFlights(log.details),
-    ((log.estimate ?? 0) / 1000).toFixed(2),
-    log.details ? log.details.replace(/\n/g, ' ') : '',
-  ]);
+  const rows = logs.map((log) => {
+    const detailsStr = log.details
+      ? typeof log.details === 'string'
+        ? log.details.replace(/\n/g, ' ')
+        : JSON.stringify(log.details)
+      : '';
+
+    return [
+      formatDate(log.created_at),
+      String(log.monthly_energy_usage ?? '–'),
+      String(log.weekly_miles ?? '–'),
+      parseFlights(log.details),
+      ((log.estimate ?? 0) / 1000).toFixed(2),
+      detailsStr,
+    ];
+  });
 
   return [headers, ...rows]
     .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))

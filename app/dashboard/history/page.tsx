@@ -111,7 +111,13 @@ export default function HistoryPage() {
                   <td className="px-4 py-4">{log.monthly_energy_usage ?? '–'} kWh</td>
                   <td className="px-4 py-4">{log.weekly_miles ?? '–'} mi</td>
                   <td className="px-4 py-4">{((log.estimate ?? 0) / 1000).toFixed(2)} t</td>
-                  <td className="px-4 py-4 text-mist/70">{log.details ?? '–'}</td>
+                  <td className="px-4 py-4 text-mist/70">
+                    {log.details
+                      ? typeof log.details === 'object'
+                        ? JSON.stringify(log.details)
+                        : String(log.details)
+                      : '–'}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -62,18 +62,42 @@ export interface CarbonCalculationResult {
   // Totals
   monthlyTotal: number; // kg CO₂e
   annualTotal: number; // kg CO₂e
-  monthlyPerCapita?: number; // kg CO₂e per person (if householdSize provided)
+  monthlyPerCapita: number; // kg CO₂e per person
+  annualPerCapita: number; // kg CO₂e per person
 
-  // Detailed breakdown
-  breakdown: {
+  // Category Breakdown
+  homeEnergy: {
+    electricity: number;
+    lpg: number;
+    png: number;
+    total: number;
+  };
+  transportation: {
+    personalVehicle: number;
+    publicTransit: number;
+    flights: number;
+    total: number;
+  };
+  diet: number;
+  goodsServices: number;
+
+  // Context & Insights
+  comparison: {
+    vsIndiaAverage: number;
+    vsWorldAverage: number;
+    vsParisTarget: number;
+  };
+  treesEquivalent: number;
+  insight: string;
+
+  // Metadata & Compatibility
+  estimate: number; // Same as monthlyTotal - the primary field for storage
+  breakdown?: {
     homeEnergy: number;
     transportation: number;
     diet: number;
     goodsServices: number;
   };
-
-  // Metadata
-  estimate: number; // Same as monthlyTotal - the primary field for storage
   details?: Record<string, unknown>; // Additional breakdown data
 }
 

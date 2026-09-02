@@ -5,6 +5,7 @@ import {
   SimpleCarbonInputSchema,
   type DetailedCarbonInput,
   type SimpleCarbonInput,
+  type CarbonCalculationResult,
 } from '@/lib/carbon/schema';
 import {
   parseRequestBody,
@@ -12,21 +13,10 @@ import {
   createErrorResponse,
   createSuccessResponse,
 } from '@/lib/auth/getAuthenticatedUser';
-
-/**
- * Normalize schema input to calculator input
- * Converts lowercase diet types to uppercase for calculator compatibility
- */
-function normalizeToCalculatorInput(schemaInput: DetailedCarbonInput | SimpleCarbonInput): CalculatorInputs {
-  const normalized = { ...schemaInput } as CalculatorInputs;
-  
-  // Normalize dietType to uppercase if present
-  if ('dietType' in normalized && normalized.dietType) {
-    normalized.dietType = (normalized.dietType as string).toUpperCase() as CalculatorInputs['dietType'];
-  }
-  
-  return normalized;
-}
+import {
+  simpleInputToCalculatorInput,
+  detailedInputToCalculatorInput,
+} from '@/lib/carbon/adapter';
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,13 +30,13 @@ export async function POST(req: NextRequest) {
     const bodyObj = body as Record<string, unknown>;
     const calcType = bodyObj.type as string | undefined;
 
-    let inputs: DetailedCarbonInput | SimpleCarbonInput;
+    let calculatorInputs: CalculatorInputs;
 
     if (calcType === 'SIMPLE') {
       // Simple calculation type
       const validation = validateRequestBody(bodyObj.input, SimpleCarbonInputSchema);
       if (validation.response) return validation.response;
-      inputs = validation.data as SimpleCarbonInput;
+      calculatorInputs = simpleInputToCalculatorInput(validation.data as SimpleCarbonInput);
     } else if (calcType === 'DETAILED' || !calcType) {
       // Detailed calculation type (default if not specified)
       const validation = validateRequestBody(
@@ -54,19 +44,28 @@ export async function POST(req: NextRequest) {
         DetailedCarbonInputSchema
       );
       if (validation.response) return validation.response;
-      inputs = validation.data as DetailedCarbonInput;
+      calculatorInputs = detailedInputToCalculatorInput(validation.data as DetailedCarbonInput);
     } else {
       return createErrorResponse(400, 'Bad Request', 'Invalid calculation type. Expected: SIMPLE or DETAILED');
     }
 
-    // Normalize input for calculator compatibility
-    const calculatorInputs = normalizeToCalculatorInput(inputs);
+    // Calculate carbon footprint using the core calculation engine
+    const calcResult = calculateCarbonFootprint(calculatorInputs);
 
-    // Calculate carbon footprint
-    const result = calculateCarbonFootprint(calculatorInputs);
+    // Build canonical response payload matching CarbonCalculationResult
+    // Explicitly defining estimate = monthlyTotal for database storage compatibility
+    const responsePayload: CarbonCalculationResult = {
+      ...calcResult,
+      estimate: calcResult.monthlyTotal,
+      breakdown: {
+        homeEnergy: calcResult.homeEnergy.total,
+        transportation: calcResult.transportation.total,
+        diet: calcResult.diet,
+        goodsServices: calcResult.goodsServices,
+      },
+    };
 
-    // Return result
-    return createSuccessResponse(result);
+    return createSuccessResponse(responsePayload);
   } catch (error) {
     console.error('[POST /api/carbon] Error:', error);
     return createErrorResponse(

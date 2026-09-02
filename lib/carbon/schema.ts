@@ -28,7 +28,7 @@ export const SimpleCarbonInputSchema = z.object({
   commuteMode: CommuteModeSchema,
   weeklyKm: z.number().min(0).max(10000).describe('Weekly commute distance in kilometers'),
   homeEnergySource: HomeEnergySourceSchema,
-  monthlyEnergyUsage: z.number().min(0).max(5000).describe('Monthly energy usage in kWh'),
+  monthlyEnergyUsage: z.number().min(0).max(5000).describe('Monthly energy usage (kWh for electricity/mixed, cylinders for LPG, SCM for natural gas)'),
   dietType: DietTypeSchema,
 });
 
@@ -111,18 +111,43 @@ export type CalculateCarbonRequest = z.infer<typeof CalculateCarbonRequestSchema
 
 /**
  * Carbon calculation result
+ * Canonical response matching calculateCarbonFootprint() plus storage fields
  */
 export const CarbonCalculationResultSchema = z.object({
   monthlyTotal: z.number().describe('kg CO₂e per month'),
   annualTotal: z.number().describe('kg CO₂e per year'),
-  monthlyPerCapita: z.number().optional(),
+  monthlyPerCapita: z.number().describe('kg CO₂e per person/month'),
+  annualPerCapita: z.number().describe('kg CO₂e per person/year'),
+  homeEnergy: z.object({
+    electricity: z.number(),
+    lpg: z.number(),
+    png: z.number(),
+    total: z.number(),
+  }),
+  transportation: z.object({
+    personalVehicle: z.number(),
+    publicTransit: z.number(),
+    flights: z.number(),
+    total: z.number(),
+  }),
+  diet: z.number().describe('kg CO₂e per month'),
+  goodsServices: z.number().describe('kg CO₂e per month'),
+  comparison: z.object({
+    vsIndiaAverage: z.number(),
+    vsWorldAverage: z.number(),
+    vsParisTarget: z.number(),
+  }),
+  treesEquivalent: z.number(),
+  insight: z.string(),
+
+  // Storage and compatibility fields (estimate = monthlyTotal)
+  estimate: z.number().describe('Alias for monthlyTotal - used for database storage'),
   breakdown: z.object({
     homeEnergy: z.number(),
     transportation: z.number(),
     diet: z.number(),
     goodsServices: z.number(),
-  }),
-  estimate: z.number().describe('Alias for monthlyTotal - used for database storage'),
+  }).optional(),
   details: z.record(z.unknown()).optional(),
 });
 
@@ -137,6 +162,7 @@ export const CarbonLogRecordSchema = z.object({
   id: z.string().uuid().optional(),
   user_id: z.string().uuid(),
   commute_mode: CommuteModeSchema,
+  weekly_miles: z.number().min(0).optional(),
   home_energy: HomeEnergySourceSchema,
   monthly_energy_usage: z.number().min(0).max(5000),
   diet: DietTypeSchema,

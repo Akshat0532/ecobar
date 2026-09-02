@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "test": "npx tsx scripts/verify-all.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.31.0",

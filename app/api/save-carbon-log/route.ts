@@ -52,9 +52,16 @@ export async function POST(request: NextRequest) {
     );
 
     // 4. Insert into database
+    const weeklyMiles = logRecord.weekly_miles ?? (
+      logRecord.details && typeof logRecord.details === 'object' && 'weeklyKm' in logRecord.details && typeof logRecord.details.weeklyKm === 'number'
+        ? Math.round(logRecord.details.weeklyKm / 1.60934)
+        : 0
+    );
+
     const { error: dbError } = await supabase.from('carbon_logs').insert({
       user_id: logRecord.user_id,
       commute_mode: logRecord.commute_mode,
+      weekly_miles: weeklyMiles,
       home_energy: logRecord.home_energy,
       monthly_energy_usage: logRecord.monthly_energy_usage,
       diet: logRecord.diet,
