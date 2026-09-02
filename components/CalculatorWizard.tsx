@@ -45,8 +45,8 @@ export function CalculatorWizard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'FULL_CALCULATOR',
-          inputs: {
+          type: 'DETAILED',
+          input: {
             monthlyElectricity, monthlyLpgCylinders, monthlyPngScm, vehicleType,
             weeklyVehicleKm, monthlyTransitKm,
             annualFlights: { short: shortFlights, medium: mediumFlights, long: longFlights },

@@ -1,48 +1,84 @@
-import { NextResponse } from 'next/server';
+/**
+ * POST /api/quick-log
+ * Quick carbon emission logging
+ * Requires authentication via Authorization header
+ */
+
+import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import {
+  getAuthenticatedUser,
+  parseRequestBody,
+  validateRequestBody,
+  createErrorResponse,
+  createSuccessResponse,
+} from '@/lib/auth/getAuthenticatedUser';
+import { QuickLogInputSchema, type QuickLogInput } from '@/lib/carbon/schema';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-export async function POST(req: Request) {
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
-
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // 1. Authenticate user
+    const authResult = await getAuthenticatedUser(request);
+    if (!authResult.user) {
+      return authResult.response!;
+    }
+    const user = authResult.user;
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // 2. Parse and validate request body
+    const body = await parseRequestBody(request);
+    if (body === null) {
+      return createErrorResponse(400, 'Bad Request', 'Invalid JSON in request body');
     }
 
-    const { emission, description, type } = body;
+    const validation = validateRequestBody(body, QuickLogInputSchema);
+    if (validation.response) return validation.response;
+    const logData = validation.data as QuickLogInput;
 
-    const { error } = await supabase
-      .from('quick_logs')
-      .insert({
-        user_id: user.id,
-        emission,
-        description,
-        type,
-      });
+    // 3. Initialize Supabase
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    );
 
-    if (error) {
-      console.error('Database error:', error);
-      return NextResponse.json({ error: 'Failed to save log' }, { status: 500 });
+    // 4. Insert into database
+    const { error: dbError } = await supabase.from('quick_logs').insert({
+      user_id: user.id,
+      emission: logData.emission,
+      description: logData.description,
+      type: logData.type,
+    });
+
+    if (dbError) {
+      console.error('[POST /api/quick-log] Database error:', dbError);
+      return createErrorResponse(
+        500,
+        'Database Error',
+        'Failed to save quick log',
+        dbError.message
+      );
     }
 
-    return NextResponse.json({ success: true });
+    // 5. Return success
+    return createSuccessResponse(
+      {
+        success: true,
+        message: 'Quick log saved successfully',
+        userId: user.id,
+      },
+      201
+    );
   } catch (error) {
-    console.error('API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[POST /api/quick-log] Error:', error);
+    return createErrorResponse(
+      500,
+      'Internal Server Error',
+      'Failed to save quick log'
+    );
   }
 }

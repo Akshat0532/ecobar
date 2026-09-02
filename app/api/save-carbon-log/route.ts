@@ -1,50 +1,92 @@
-import { NextResponse } from 'next/server';
+/**
+ * POST /api/save-carbon-log
+ * Save a calculated carbon log to the database
+ * Requires authentication via Authorization header
+ */
+
+import { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import {
+  getAuthenticatedUser,
+  parseRequestBody,
+  validateRequestBody,
+  createErrorResponse,
+  createSuccessResponse,
+} from '@/lib/auth/getAuthenticatedUser';
+import { CarbonLogRecordSchema, type CarbonLogRecord } from '@/lib/carbon/schema';
 
-export async function POST(req: Request) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 });
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  });
-
+export async function POST(request: NextRequest) {
   try {
-    const body = await req.json();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // 1. Authenticate user
+    const authResult = await getAuthenticatedUser(request);
+    if (!authResult.user) {
+      return authResult.response!;
+    }
+    const user = authResult.user;
 
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // 2. Parse and validate request body
+    const body = await parseRequestBody(request);
+    if (body === null) {
+      return createErrorResponse(400, 'Bad Request', 'Invalid JSON in request body');
     }
 
-    const { error } = await supabase
-      .from('carbon_logs')
-      .insert({
-        user_id: user.id,
-        commute_mode: body.commuteMode,
-        weekly_miles: body.weeklyMiles,
-        home_energy: body.homeEnergy,
-        monthly_energy_usage: body.monthlyEnergyUsage,
-        diet: body.diet,
-        estimate: body.estimate,
-        details: body.details
-      });
+    // Validate using our schema (with user_id injected)
+    const bodyWithUserId = {
+      ...body,
+      user_id: user.id,
+    };
+    const validation = validateRequestBody(bodyWithUserId, CarbonLogRecordSchema);
+    if (validation.response) return validation.response;
+    const logRecord = validation.data as CarbonLogRecord;
 
-    if (error) {
-      console.error('Database error:', error);
-      return NextResponse.json({ error: 'Failed to save log' }, { status: 500 });
+    // 3. Initialize Supabase
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    );
+
+    // 4. Insert into database
+    const { error: dbError } = await supabase.from('carbon_logs').insert({
+      user_id: logRecord.user_id,
+      commute_mode: logRecord.commute_mode,
+      home_energy: logRecord.home_energy,
+      monthly_energy_usage: logRecord.monthly_energy_usage,
+      diet: logRecord.diet,
+      estimate: logRecord.estimate,
+      details: logRecord.details || null,
+    });
+
+    if (dbError) {
+      console.error('[POST /api/save-carbon-log] Database error:', dbError);
+      return createErrorResponse(
+        500,
+        'Database Error',
+        'Failed to save carbon log',
+        dbError.message
+      );
     }
 
-    return NextResponse.json({ success: true });
+    // 5. Return success
+    return createSuccessResponse(
+      {
+        success: true,
+        message: 'Carbon log saved successfully',
+        userId: user.id,
+      },
+      201
+    );
   } catch (error) {
-    console.error('API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[POST /api/save-carbon-log] Error:', error);
+    return createErrorResponse(
+      500,
+      'Internal Server Error',
+      'Failed to save carbon log'
+    );
   }
 }
