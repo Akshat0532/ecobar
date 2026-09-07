@@ -1,15 +1,11 @@
 import { NextRequest } from 'next/server';
-import { calculateCarbonFootprint, type CalculatorInputs } from '@/lib/calculator';
+import { calculateCarbonFootprint } from '@/lib/calculator';
 import {
-  DetailedCarbonInputSchema,
-  SimpleCarbonInputSchema,
-  type DetailedCarbonInput,
-  type SimpleCarbonInput,
+  CalculateCarbonRequestSchema,
   type CarbonCalculationResult,
 } from '@/lib/carbon/schema';
 import {
   parseRequestBody,
-  validateRequestBody,
   createErrorResponse,
   createSuccessResponse,
 } from '@/lib/auth/getAuthenticatedUser';
@@ -26,31 +22,15 @@ export async function POST(req: NextRequest) {
       return createErrorResponse(400, 'Bad Request', 'Invalid JSON in request body');
     }
 
-    // Determine calculation type and validate
-    const bodyObj = body as Record<string, unknown>;
-    const calcType = bodyObj.type as string | undefined;
-
-    let calculatorInputs: CalculatorInputs;
-
-    if (calcType === 'SIMPLE') {
-      // Simple calculation type
-      const validation = validateRequestBody(bodyObj.input, SimpleCarbonInputSchema);
-      if (validation.response) return validation.response;
-      calculatorInputs = simpleInputToCalculatorInput(validation.data as SimpleCarbonInput);
-    } else if (calcType === 'DETAILED' || !calcType) {
-      // Detailed calculation type (default if not specified)
-      const validation = validateRequestBody(
-        bodyObj.input || body,
-        DetailedCarbonInputSchema
-      );
-      if (validation.response) return validation.response;
-      calculatorInputs = detailedInputToCalculatorInput(validation.data as DetailedCarbonInput);
-    } else {
-      return createErrorResponse(400, 'Bad Request', 'Invalid calculation type. Expected: SIMPLE or DETAILED');
+    const validation = CalculateCarbonRequestSchema.safeParse(body);
+    if (!validation.success) {
+      return createErrorResponse(400, 'Bad Request', 'Invalid carbon calculation request', validation.error.flatten());
     }
 
     // Calculate carbon footprint using the core calculation engine
-    const calcResult = calculateCarbonFootprint(calculatorInputs);
+    const calcResult = validation.data.type === 'SIMPLE'
+      ? calculateCarbonFootprint(simpleInputToCalculatorInput(validation.data.input))
+      : calculateCarbonFootprint(detailedInputToCalculatorInput(validation.data.input));
 
     // Build canonical response payload matching CarbonCalculationResult
     // Explicitly defining estimate = monthlyTotal for database storage compatibility

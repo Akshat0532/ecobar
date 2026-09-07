@@ -5,6 +5,8 @@
 
 import { z } from 'zod';
 
+const finiteNumber = z.number().finite();
+
 // ============ Base Types ============
 
 export const CommuteModeSchema = z.enum(['car', 'two_wheeler', 'transit', 'bike', 'remote']);
@@ -26,9 +28,9 @@ export type TransitType = z.infer<typeof TransitTypeSchema>;
 
 export const SimpleCarbonInputSchema = z.object({
   commuteMode: CommuteModeSchema,
-  weeklyKm: z.number().min(0).max(10000).describe('Weekly commute distance in kilometers'),
+  weeklyKm: z.number().finite().min(0).max(10000).describe('Weekly commute distance in kilometers'),
   homeEnergySource: HomeEnergySourceSchema,
-  monthlyEnergyUsage: z.number().min(0).max(5000).describe('Monthly energy usage (kWh for electricity/mixed, cylinders for LPG, SCM for natural gas)'),
+  monthlyEnergyUsage: z.number().finite().min(0).max(5000).describe('Monthly energy usage (kWh for electricity/mixed, cylinders for LPG, SCM for natural gas)'),
   dietType: DietTypeSchema,
 });
 
@@ -38,27 +40,27 @@ export type SimpleCarbonInput = z.infer<typeof SimpleCarbonInputSchema>;
 
 export const DetailedCarbonInputSchema = z.object({
   // Home Energy
-  monthlyElectricity: z.number().min(0).max(5000).optional().describe('kWh per month'),
-  monthlyLpgCylinders: z.number().min(0).max(50).optional().describe('14.2kg cylinders per month'),
-  monthlyPngScm: z.number().min(0).max(100).optional().describe('PNG/Natural Gas in Standard Cubic Meters per month'),
+  monthlyElectricity: finiteNumber.min(0).max(5000).optional().describe('kWh per month'),
+  monthlyLpgCylinders: finiteNumber.min(0).max(50).optional().describe('14.2kg cylinders per month'),
+  monthlyPngScm: finiteNumber.min(0).max(100).optional().describe('PNG/Natural Gas in Standard Cubic Meters per month'),
   // Alias for backward compatibility
-  monthlyNaturalGasCubicMeters: z.number().min(0).max(100).optional().describe('Alias for monthlyPngScm'),
+  monthlyNaturalGasCubicMeters: finiteNumber.min(0).max(100).optional().describe('Alias for monthlyPngScm'),
   electricityRegion: z.string().optional(),
 
   // Transportation - Personal Vehicle
   vehicleType: VehicleTypeSchema.optional(),
-  weeklyVehicleKm: z.number().min(0).max(10000).optional().describe('km per week'),
+  weeklyVehicleKm: finiteNumber.min(0).max(10000).optional().describe('km per week'),
 
   // Transportation - Public Transit
-  monthlyTransitKm: z.number().min(0).max(20000).optional().describe('km per month'),
+  monthlyTransitKm: finiteNumber.min(0).max(20000).optional().describe('km per month'),
   transitType: TransitTypeSchema.optional(),
 
   // Flights
   annualFlights: z
     .object({
-      short: z.number().min(0).max(100).optional(),
-      medium: z.number().min(0).max(100).optional(),
-      long: z.number().min(0).max(100).optional(),
+      short: finiteNumber.min(0).max(100).optional(),
+      medium: finiteNumber.min(0).max(100).optional(),
+      long: finiteNumber.min(0).max(100).optional(),
     })
     .optional(),
 
@@ -66,14 +68,14 @@ export const DetailedCarbonInputSchema = z.object({
   dietType: DietTypeSchema.optional(),
 
   // Goods & Services
-  monthlySpending: z.number().min(0).max(10000000).optional().describe('Currency amount'),
+  monthlySpending: finiteNumber.min(0).max(10000000).optional().describe('Currency amount'),
   spendingLevel: z.enum(['CONSERVATIVE', 'LIBERAL']).optional(),
 
   // Household
-  householdSize: z.number().min(1).max(20).optional(),
+  householdSize: finiteNumber.min(1).max(20).optional(),
 }).transform((data) => {
   // Normalize: prefer monthlyPngScm but accept monthlyNaturalGasCubicMeters
-  if (!data.monthlyPngScm && data.monthlyNaturalGasCubicMeters) {
+  if (data.monthlyPngScm === undefined && data.monthlyNaturalGasCubicMeters !== undefined) {
     data.monthlyPngScm = data.monthlyNaturalGasCubicMeters;
   }
   return data;
@@ -162,11 +164,11 @@ export const CarbonLogRecordSchema = z.object({
   id: z.string().uuid().optional(),
   user_id: z.string().uuid(),
   commute_mode: CommuteModeSchema,
-  weekly_miles: z.number().min(0).optional(),
+  weekly_miles: finiteNumber.min(0).optional(),
   home_energy: HomeEnergySourceSchema,
-  monthly_energy_usage: z.number().min(0).max(5000),
+  monthly_energy_usage: finiteNumber.min(0).max(5000),
   diet: DietTypeSchema,
-  estimate: z.number().min(0),
+  estimate: finiteNumber.min(0),
   details: z.record(z.unknown()).optional(),
   created_at: z.string().datetime().optional(),
   updated_at: z.string().datetime().optional(),

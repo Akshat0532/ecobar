@@ -69,7 +69,9 @@ export function CarbonDashboard() {
 }
 
 function HeroMetric({ data }: { data: DashboardData }) {
-  const percentChange = ((data.previousMonth - data.currentMonth) / data.previousMonth) * 100;
+  const percentChange = data.previousMonth > 0
+    ? ((data.previousMonth - data.currentMonth) / data.previousMonth) * 100
+    : 0;
   const isPositive = percentChange > 0;
 
   return (
@@ -240,7 +242,9 @@ function InsightsSection({ data }: { data: DashboardData }) {
     };
     const monthlyStats = {
       currentMonth: data.currentMonth, previousMonth: data.previousMonth,
-      sixMonthAvg: data.monthlyTrend.slice(-6).reduce((a, b) => a + b.footprint, 0) / 6,
+      sixMonthAvg: data.monthlyTrend.length > 0
+        ? data.monthlyTrend.slice(-6).reduce((a, b) => a + b.footprint, 0) / Math.min(data.monthlyTrend.length, 6)
+        : 0,
       monthlyBreakdown: data.breakdown,
     };
     return generateInsights(mockResult, monthlyStats, data.totalGreenActions);

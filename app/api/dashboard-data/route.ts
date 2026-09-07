@@ -71,12 +71,13 @@ export async function GET(request: NextRequest) {
     // 5. Fetch quick logs for green actions count
     const { data: quickLogs, error: quickLogsError } = await supabase
       .from('quick_logs')
-      .select('id')
+      .select('id, created_at')
       .eq('user_id', userId)
       .gte('created_at', twelveMonthsAgo.toISOString());
 
     if (!quickLogsError && quickLogs) {
       dashboardData.totalGreenActions = quickLogs.length;
+      dashboardData.greenActionsDays = quickLogs.map((log) => new Date(log.created_at).getDate());
     }
 
     return createSuccessResponse(dashboardData);

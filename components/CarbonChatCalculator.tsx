@@ -7,14 +7,7 @@ import { Input } from './ui/input';
 import { Card } from './ui/card';
 import { getBrowserSupabaseClient } from '@/lib/supabaseClient';
 import type { CarbonCalculationResult } from '@/lib/carbon/schema';
-
-/**
- * Convert miles to kilometers
- * 1 mile = 1.60934 km
- */
-export function milesToKilometers(miles: number): number {
-  return Math.round(miles * 1.60934 * 100) / 100;
-}
+import { milesToKilometers } from '@/lib/carbon/adapter';
 
 const commuteOptions = [
   { value: 'car', label: 'Drive alone' },
@@ -135,7 +128,9 @@ export function CarbonChatCalculator() {
       // Step 2: Save to database
       try {
         const supabase = getBrowserSupabaseClient();
-        const isDemo = typeof window !== 'undefined' && window.localStorage.getItem('demo_user') === 'true';
+        const isDemo = typeof window !== 'undefined' &&
+          !process.env.NEXT_PUBLIC_SUPABASE_URL &&
+          window.localStorage.getItem('demo_user') === 'true';
 
         // Map form data and breakdown to database schema
         const saveRequest = {
@@ -201,8 +196,14 @@ export function CarbonChatCalculator() {
 
   const errors = useMemo(() => {
     const list: string[] = [];
-    if (Number(formState.weeklyMiles) < 0) list.push('Weekly mileage cannot be negative.');
-    if (Number(formState.monthlyEnergyUsage) < 0) list.push('Monthly energy usage must be positive.');
+    const weeklyMiles = Number(formState.weeklyMiles);
+    const monthlyEnergyUsage = Number(formState.monthlyEnergyUsage);
+    if (!formState.weeklyMiles.trim() || !Number.isFinite(weeklyMiles) || weeklyMiles < 0) {
+      list.push('Weekly mileage must be a valid non-negative number.');
+    }
+    if (!formState.monthlyEnergyUsage.trim() || !Number.isFinite(monthlyEnergyUsage) || monthlyEnergyUsage < 0) {
+      list.push('Monthly energy usage must be a valid non-negative number.');
+    }
     return list;
   }, [formState]);
 
@@ -258,21 +259,11 @@ export function CarbonChatCalculator() {
               value={formState.homeEnergySource}
               onChange={(e) => {
                 const newSource = e.target.value as FormState['homeEnergySource'];
-                const prevConfig = ENERGY_CONFIG[formState.homeEnergySource];
                 const newConfig = ENERGY_CONFIG[newSource];
-                // Adapt default value when switching between units with vastly different scales
-                let newUsage = formState.monthlyEnergyUsage;
-                if (
-                  formState.monthlyEnergyUsage === prevConfig.defaultVal ||
-                  (newSource === 'lpg' && Number(formState.monthlyEnergyUsage) > 50) ||
-                  ((newSource === 'electricity' || newSource === 'mixed') && Number(formState.monthlyEnergyUsage) <= 10)
-                ) {
-                  newUsage = newConfig.defaultVal;
-                }
                 setFormState({
                   ...formState,
                   homeEnergySource: newSource,
-                  monthlyEnergyUsage: newUsage,
+                  monthlyEnergyUsage: newConfig.defaultVal,
                 });
               }}
               className={selectCls}

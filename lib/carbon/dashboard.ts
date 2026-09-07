@@ -20,24 +20,40 @@ export interface DashboardData {
     goods: number;
   };
   treesEquivalent: number;
+  greenActionsDays: number[];
   totalGreenActions: number;
   emptyState: boolean;
 }
 
+type JsonObject = Record<string, unknown>;
+
 /**
  * Safely parse log details which may be a JSON object, a JSON string, or null
  */
-export function parseLogDetails(details: unknown): Record<string, any> | null {
+export function parseLogDetails(details: unknown): JsonObject | null {
   if (!details) return null;
-  if (typeof details === 'object' && details !== null) return details as Record<string, any>;
+  if (typeof details === 'object' && details !== null && !Array.isArray(details)) {
+    return details as JsonObject;
+  }
   if (typeof details === 'string') {
     try {
-      return JSON.parse(details);
+      const parsed: unknown = JSON.parse(details);
+      return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
+        ? parsed as JsonObject
+        : null;
     } catch {
       return null;
     }
   }
   return null;
+}
+
+function numericDetail(details: JsonObject, key: string, legacyKey?: string): number {
+  const value = details[key] ?? (legacyKey ? details[legacyKey] : undefined);
+  const candidate = typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as JsonObject).total
+    : value;
+  return typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : 0;
 }
 
 /**
@@ -81,6 +97,7 @@ export function aggregateDashboardData(logs: CarbonLog[]): DashboardData {
       previousMonth: 0,
       breakdown: { home: 0, travel: 0, diet: 0, goods: 0 },
       treesEquivalent: 0,
+      greenActionsDays: [],
       totalGreenActions: 0,
       emptyState: true,
     };
@@ -121,38 +138,10 @@ export function aggregateDashboardData(logs: CarbonLog[]): DashboardData {
 
     if (hasDetailedBreakdown) {
       // Use the actual category breakdown saved in details
-      const travelVal =
-        Number(
-          parsed.transportation?.total ??
-            parsed.transportation ??
-            parsed.transport?.total ??
-            parsed.transport ??
-            0
-        ) || 0;
-      const homeVal =
-        Number(
-          parsed.homeEnergy?.total ??
-            parsed.homeEnergy ??
-            parsed.home?.total ??
-            parsed.home ??
-            0
-        ) || 0;
-      const dietVal =
-        Number(
-          parsed.diet?.total ??
-            parsed.diet ??
-            parsed.food?.total ??
-            parsed.food ??
-            0
-        ) || 0;
-      const goodsVal =
-        Number(
-          parsed.goodsServices?.total ??
-            parsed.goodsServices ??
-            parsed.goods?.total ??
-            parsed.goods ??
-            0
-        ) || 0;
+      const travelVal = numericDetail(parsed, 'transportation', 'transport');
+      const homeVal = numericDetail(parsed, 'homeEnergy', 'home');
+      const dietVal = numericDetail(parsed, 'diet', 'food');
+      const goodsVal = numericDetail(parsed, 'goodsServices', 'goods');
 
       monthlyData[monthKey].breakdown.travel += travelVal;
       monthlyData[monthKey].breakdown.home += homeVal;
@@ -206,6 +195,7 @@ export function aggregateDashboardData(logs: CarbonLog[]): DashboardData {
     previousMonth,
     breakdown,
     treesEquivalent,
+    greenActionsDays: [],
     totalGreenActions: 0, // Will be updated by caller
     emptyState: false,
   };

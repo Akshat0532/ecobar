@@ -87,16 +87,16 @@ function calculateHomeEnergy(inputs: CalculatorInputs): CalculatorResult['homeEn
   let lpg = 0;
   let png = 0;
 
-  if (inputs.monthlyElectricity) {
+  if (inputs.monthlyElectricity !== undefined) {
     const factor = getElectricityFactor(inputs.electricityRegion);
     electricity = inputs.monthlyElectricity * factor;
   }
 
-  if (inputs.monthlyLpgCylinders) {
+  if (inputs.monthlyLpgCylinders !== undefined) {
     lpg = inputs.monthlyLpgCylinders * LPG_FACTORS.PER_CYLINDER;
   }
 
-  if (inputs.monthlyPngScm) {
+  if (inputs.monthlyPngScm !== undefined) {
     png = inputs.monthlyPngScm * NATURAL_GAS_FACTORS.PER_SCM;
   }
 
@@ -117,13 +117,13 @@ function calculateTransportation(inputs: CalculatorInputs): CalculatorResult['tr
   let flights = 0;
 
   // Personal Vehicle (km-based)
-  if (inputs.weeklyVehicleKm && inputs.vehicleType) {
+  if (inputs.weeklyVehicleKm !== undefined && inputs.vehicleType) {
     const factor = getVehicleFactor(inputs.vehicleType);
     personalVehicle = inputs.weeklyVehicleKm * 4.33 * factor; // ~4.33 weeks/month
   }
 
   // Public Transit
-  if (inputs.monthlyTransitKm && inputs.transitType) {
+  if (inputs.monthlyTransitKm !== undefined && inputs.transitType) {
     const transitFactor =
       TRANSIT_FACTORS[inputs.transitType as keyof typeof TRANSIT_FACTORS] || TRANSIT_FACTORS.BUS;
     publicTransit = inputs.monthlyTransitKm * transitFactor;
@@ -134,17 +134,17 @@ function calculateTransportation(inputs: CalculatorInputs): CalculatorResult['tr
     let annualFlightEmissions = 0;
 
     // Short-haul (assume 700 km avg — Delhi to Mumbai)
-    if (inputs.annualFlights.short) {
+    if (inputs.annualFlights.short !== undefined) {
       annualFlightEmissions += inputs.annualFlights.short * 700 * FLIGHT_FACTORS.SHORT_RFI;
     }
 
     // Medium-haul (assume 2000 km avg — Delhi to Chennai)
-    if (inputs.annualFlights.medium) {
+    if (inputs.annualFlights.medium !== undefined) {
       annualFlightEmissions += inputs.annualFlights.medium * 2000 * FLIGHT_FACTORS.MEDIUM_RFI;
     }
 
     // Long-haul (assume 8000 km avg — International)
-    if (inputs.annualFlights.long) {
+    if (inputs.annualFlights.long !== undefined) {
       annualFlightEmissions += inputs.annualFlights.long * 8000 * FLIGHT_FACTORS.LONG_RFI;
     }
 
@@ -172,7 +172,7 @@ function calculateDiet(inputs: CalculatorInputs, householdSize: number): number 
  * Calculate monthly emissions from goods & services spending (in ₹)
  */
 function calculateGoodsServices(inputs: CalculatorInputs): number {
-  if (!inputs.monthlySpending) return 0;
+  if (inputs.monthlySpending === undefined) return 0;
   const factor = getSpendingFactor(inputs.spendingLevel);
   return Number((inputs.monthlySpending * factor).toFixed(2));
 }
@@ -217,7 +217,7 @@ function generateInsight(result: CalculatorResult): string {
  * Main calculation orchestrator
  */
 export function calculateCarbonFootprint(inputs: CalculatorInputs): CalculatorResult {
-  const householdSize = inputs.householdSize || 1;
+  const householdSize = inputs.householdSize ?? 1;
 
   const homeEnergy = calculateHomeEnergy(inputs);
   const transportation = calculateTransportation(inputs);

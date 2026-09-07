@@ -13,7 +13,7 @@ import {
   createErrorResponse,
   createSuccessResponse,
 } from '@/lib/auth/getAuthenticatedUser';
-import { CarbonLogRecordSchema, type CarbonLogRecord } from '@/lib/carbon/schema';
+import { CarbonLogRecordSchema } from '@/lib/carbon/schema';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +37,10 @@ export async function POST(request: NextRequest) {
     };
     const validation = validateRequestBody(bodyWithUserId, CarbonLogRecordSchema);
     if (validation.response) return validation.response;
-    const logRecord = validation.data as CarbonLogRecord;
+    if (!validation.data) {
+      return createErrorResponse(400, 'Bad Request', 'Invalid carbon log');
+    }
+    const logRecord = validation.data;
 
     // 3. Initialize Supabase
     const supabase = createClient(

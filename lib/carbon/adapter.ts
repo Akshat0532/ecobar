@@ -10,7 +10,7 @@ import type {
  * 1 mile = 1.60934 km
  */
 export function milesToKilometers(miles: number): number {
-  return Math.round(miles * 1.60934 * 100) / 100;
+  return miles * 1.60934;
 }
 
 /**
@@ -96,12 +96,7 @@ export function detailedInputToCalculatorInput(input: DetailedCarbonInput): Calc
   const result: CalculatorInputs = { ...rest };
 
   if (dietType) {
-    const upper = dietType.toUpperCase();
-    if (upper === 'VEGAN' || upper === 'VEGETARIAN' || upper === 'EGGETARIAN' || upper === 'BALANCED' || upper === 'MEAT_HEAVY') {
-      result.dietType = upper;
-    } else if (dietType in DIET_MAP) {
-      result.dietType = DIET_MAP[dietType as DietType];
-    }
+    result.dietType = DIET_MAP[dietType];
   }
 
   return result;

@@ -26,8 +26,9 @@ async function main() {
   }
 
   console.log('\n--- 1. Distance Unit Conversion ---');
+  assert(milesToKilometers(1) === 1.60934, `1 mile converts to 1.60934 km (got ${milesToKilometers(1)})`);
   const km = milesToKilometers(100);
-  assert(km === 160.93, `100 miles converts to 160.93 km (got ${km})`);
+  assert(km === 160.934, `100 miles converts to 160.934 km (got ${km})`);
 
   console.log('\n--- 2. Primary Test Case: Car, 100 miles, Electricity 420 kWh, Balanced diet ---');
   const primaryInput: SimpleCarbonInput = {
@@ -39,7 +40,7 @@ async function main() {
   };
   const primaryCalcInputs = simpleInputToCalculatorInput(primaryInput);
   assert(primaryCalcInputs.vehicleType === 'SEDAN', 'Mapped vehicleType to SEDAN');
-  assert(primaryCalcInputs.weeklyVehicleKm === 160.93, 'Mapped weeklyVehicleKm to 160.93');
+  assert(primaryCalcInputs.weeklyVehicleKm === 160.934, 'Mapped weeklyVehicleKm to 160.934');
   assert(primaryCalcInputs.monthlyElectricity === 420, 'Mapped monthlyElectricity to 420');
   assert(primaryCalcInputs.dietType === 'BALANCED', 'Mapped dietType to BALANCED');
 
@@ -87,6 +88,9 @@ async function main() {
   };
   const calcB = calculateCarbonFootprint(simpleInputToCalculatorInput(scenarioBInput));
   assert(calcB.transportation.total === 0, `Bike transportation is 0 (got ${calcB.transportation.total})`);
+  assert(calcB.transportation.personalVehicle === 0, 'Bike personal vehicle is 0');
+  assert(calcB.transportation.publicTransit === 0, 'Bike public transit is 0');
+  assert(calcB.transportation.flights === 0, 'Bike flights are 0');
   assert(calcB.homeEnergy.total > 0, `Home energy is > 0 (got ${calcB.homeEnergy.total})`);
   assert(calcB.diet === 1.5, `Vegetarian diet factor is 1.5 (got ${calcB.diet})`);
 
@@ -100,6 +104,9 @@ async function main() {
   };
   const calcC = calculateCarbonFootprint(simpleInputToCalculatorInput(scenarioCInput));
   assert(calcC.transportation.total === 0, `Remote transportation is 0 (got ${calcC.transportation.total})`);
+  assert(calcC.transportation.personalVehicle === 0, 'Remote personal vehicle is 0');
+  assert(calcC.transportation.publicTransit === 0, 'Remote public transit is 0');
+  assert(calcC.transportation.flights === 0, 'Remote flights are 0');
   assert(calcC.homeEnergy.total > 0, `Home energy is > 0 (got ${calcC.homeEnergy.total})`);
   assert(calcC.diet === 0.8, `Vegan diet factor is 0.8 (got ${calcC.diet})`);
 
@@ -138,6 +145,7 @@ async function main() {
   };
   const calcGas = calculateCarbonFootprint(simpleInputToCalculatorInput(gasInput));
   assert(calcGas.homeEnergy.png === 48.25, `25 SCM natural gas = 48.25 kg CO2e (got ${calcGas.homeEnergy.png})`);
+  assert(calcGas.homeEnergy.electricity === 0, 'Natural gas electricity emissions are 0');
 
   // Mixed: 350 kWh electricity + 1 cylinder LPG
   const mixedInput: SimpleCarbonInput = {
@@ -151,6 +159,11 @@ async function main() {
   assert(calcMixed.homeEnergy.electricity === 247.8, `350 kWh elec = 247.8 kg (got ${calcMixed.homeEnergy.electricity})`);
   assert(calcMixed.homeEnergy.lpg === 42.5, `1 LPG cylinder = 42.5 kg (got ${calcMixed.homeEnergy.lpg})`);
   assert(calcMixed.homeEnergy.total === 290.3, `Mixed total = 290.3 kg (got ${calcMixed.homeEnergy.total})`);
+
+  const electricityInput: SimpleCarbonInput = { ...gasInput, homeEnergySource: 'electricity', monthlyEnergyUsage: 300 };
+  const calcElectricity = calculateCarbonFootprint(simpleInputToCalculatorInput(electricityInput));
+  assert(calcElectricity.homeEnergy.electricity > 0, 'Electricity emissions are > 0');
+  assert(calcElectricity.homeEnergy.lpg === 0 && calcElectricity.homeEnergy.png === 0, 'Electricity does not add LPG or PNG emissions');
 
   console.log('\n--- 7. Commute Two-Wheeler Mapping ---');
   const twoWheelerInput: SimpleCarbonInput = {
@@ -229,6 +242,8 @@ async function main() {
     homeEnergySource: 'coal',
   });
   assert(!badEnergySource.success, 'Invalid homeEnergySource rejected by schema');
+  const infiniteKm = SimpleCarbonInputSchema.safeParse({ ...primaryInput, weeklyKm: Infinity });
+  assert(!infiniteKm.success, 'Infinite weeklyKm rejected by schema');
 
   console.log('\n--- 10. API Route Tests ---');
   // Test 1: POST /api/carbon with SIMPLE calculation
